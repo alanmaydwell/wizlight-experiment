@@ -11,8 +11,9 @@ and `bulb` but these are both both pywizlight.bulb.wizlight objects, so look to 
 """
 
 
-def get_rgbs(pick: int, multi: int = 10) -> list[tuple[int, int, int]]:
-    colours1 = [(0, 0, 255), (0, 128, 128), (0, 255, 0), (128 , 128, 0), (255, 0, 0), (128, 0, 128)] * multi
+def get_rgbs(pick: int, repeat: int = 10) -> list[tuple[int, int, int]]:
+    "Hasty bodge for returning two sequences of RGB values"
+    colours1 = [(0, 0, 255), (0, 128, 128), (0, 255, 0), (128 , 128, 0), (255, 0, 0), (128, 0, 128)] * repeat
     colours2 = colours1[::-1]  # reversed
     colours = [colours1, colours2]
     pick = pick % len(colours)
@@ -29,6 +30,7 @@ async def colour_strobe(bulb: bulb.wizlight,
                         colours: list[tuple[int, int, int]],
                         delay: int | float = 0.5):
     """
+    Send sequence of colour changes to WiZ bulb.
     colours is list of tuples with RGB values e,g. [(255, 0, 0), (0, 255, 0), (0, 0, 255)]
     """
     for colour in colours:
@@ -39,18 +41,14 @@ async def colour_strobe(bulb: bulb.wizlight,
 async def main():
     print("Looking for WiZ lights")
     bulbs = await get_bulbs()
-    
     if bulbs:
-        print(f"Found {len(bulbs)} lights")
+        print(f"Found {len(bulbs)} lights:")
         for bulb in bulbs:
             print(bulb)
         
         print("Strobe!")
-        colours1 = [(0, 0, 255), (0, 128, 128), (0, 255, 0), (128 , 128, 0), (255, 0, 0), (128, 0, 128)]
-        colours2 = colours1[::-1]  # Reversed
-        #coroutines = [colour_strobe(bulb, colours, 0.1) for bulb in bulbs]
-        coroutines = [colour_strobe(bulb, get_rgbs(bi), 0.1) for bi, bulb in enumerate(bulbs)]
-        await asyncio.gather(*coroutines)
+        strobe_coroutines = [colour_strobe(bulb, get_rgbs(bi), 0.1) for bi, bulb in enumerate(bulbs)]
+        await asyncio.gather(*strobe_coroutines)
     else:
         print("No WiZ lights found")
     print("End")
