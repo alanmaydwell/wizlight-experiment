@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import asyncio
 
 from pywizlight import wizlight, PilotBuilder, discovery, bulb
@@ -8,6 +10,14 @@ Note example on https://github.com/sbidy/pywizlight SEEMS to make a distinction 
 and `bulb` but these are both both pywizlight.bulb.wizlight objects, so look to be the same.
 """
 
+
+def get_rgbs(pick: int, multi: int = 10) -> list[tuple[int, int, int]]:
+    colours1 = [(0, 0, 255), (0, 128, 128), (0, 255, 0), (128 , 128, 0), (255, 0, 0), (128, 0, 128)] * multi
+    colours2 = colours1[::-1]  # reversed
+    colours = [colours1, colours2]
+    pick = pick % len(colours)
+    return colours[pick]
+    
 
 async def get_bulbs(broadcast_space: str = "192.168.0.255") -> list[bulb.wizlight]:
     "Find WiZ bulbs available on LAN"
@@ -30,24 +40,23 @@ async def main():
     print("Looking for WiZ lights")
     bulbs = await get_bulbs()
     
-
     if bulbs:
-        # Don't need the below - can directly update bulb
-        ## light = wizlight(bulbs[0].ip)
-        
         print(f"Found {len(bulbs)} lights")
         for bulb in bulbs:
             print(bulb)
+        
         print("Strobe!")
-        bulb = bulbs[0]
-        colours = [(0, 0, 255), (0, 128, 128), (0, 255, 0), (128 , 128, 0), (255, 0, 0), (128, 0, 128)] * 10
-        await colour_strobe(bulb, colours, 0.1)
+        colours1 = [(0, 0, 255), (0, 128, 128), (0, 255, 0), (128 , 128, 0), (255, 0, 0), (128, 0, 128)]
+        colours2 = colours1[::-1]  # Reversed
+        #coroutines = [colour_strobe(bulb, colours, 0.1) for bulb in bulbs]
+        coroutines = [colour_strobe(bulb, get_rgbs(bi), 0.1) for bi, bulb in enumerate(bulbs)]
+        await asyncio.gather(*coroutines)
     else:
         print("No WiZ lights found")
     print("End")
 
 
 if __name__ == "__main__":
+    # Note using `asyncio.run(main())` leads to `RuntimeError: Event loop is closed` at end
     loop = asyncio.get_event_loop()
     loop.run_until_complete(main())
-
